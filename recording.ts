@@ -266,4 +266,15 @@ namespace record {
     function notSendingToSerial(): boolean {
 		return !sendingToSerial();    
 	}
+
+    /**
+     * Get the recorded audio clip as a raw buffer of 8-bit samples
+     */
+    //% block="get recording buffer"
+    //% blockId="record_getBuffer"
+    //% weight=15
+    //% shim=record::getBuffer
+    export function getBuffer(): Buffer {
+        return control.createBuffer(0);
+    }
 }

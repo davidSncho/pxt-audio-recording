@@ -307,4 +307,39 @@ bool sendingToSerial() {
 #endif
 }
 
+/**
+ * Get the recorded audio clip as a raw buffer of 8-bit samples
+ */
+//%
+Buffer getBuffer() {
+#if MICROBIT_CODAL
+    checkEnv();
+    int total = recording->length();
+    Buffer buffer = mkBuffer(NULL, total);
+    if (total <= 0) return buffer;
+
+    registerGCObj(buffer);
+
+    // Drive the StreamRecording's pull() loop directly (no DataSink connected),
+    // mirroring how SerialSink consumes it above, but copying into our buffer
+    // instead of writing decimal ASCII to the physical serial port.
+    recording->playAsync();
+    int offset = 0;
+    while (offset < total) {
+        ManagedBuffer chunk = recording->pull();
+        if (chunk.length() == 0) break;
+        int remaining = total - offset;
+        int n = chunk.length() < remaining ? chunk.length() : remaining;
+        memcpy(buffer->data + offset, chunk.getBytes(), n);
+        offset += n;
+    }
+
+    unregisterGCObj(buffer);
+    return buffer;
+#else
+    target_panic(PANIC_VARIANT_NOT_SUPPORTED);
+    return mkBuffer(NULL, 0);
+#endif
+}
+
 } // namespace record
