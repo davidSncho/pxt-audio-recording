@@ -268,13 +268,35 @@ namespace record {
 	}
 
     /**
-     * Get the recorded audio clip as a raw buffer of 8-bit samples
+     * Total length in bytes of the recorded audio clip
      */
-    //% block="get recording buffer"
-    //% blockId="record_getBuffer"
+    //% block="recording length"
+    //% blockId="record_clipLength"
+    //% weight=17
+    //% shim=record::clipLength
+    export function clipLength(): int32 {
+        return 0;
+    }
+
+    /**
+     * Rewind the recorded clip, ready to be read chunk by chunk
+     */
+    //% block="begin reading recording"
+    //% blockId="record_beginExtract"
+    //% weight=16
+    //% shim=record::beginExtract
+    export function beginExtract(): void {
+        return;
+    }
+
+    /**
+     * Read the next chunk of the recorded clip. Returns an empty buffer at the end.
+     */
+    //% block="next recording chunk"
+    //% blockId="record_nextChunk"
     //% weight=15
-    //% shim=record::getBuffer
-    export function getBuffer(): Buffer {
+    //% shim=record::nextChunk
+    export function nextChunk(): Buffer {
         return control.createBuffer(0);
     }
 }

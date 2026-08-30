@@ -308,34 +308,47 @@ bool sendingToSerial() {
 }
 
 /**
- * Get the recorded audio clip as a raw buffer of 8-bit samples
+ * Total length in bytes of the recorded audio clip
  */
 //%
-Buffer getBuffer() {
+int clipLength() {
 #if MICROBIT_CODAL
     checkEnv();
-    int total = recording->length();
-    Buffer buffer = mkBuffer(NULL, total);
-    if (total <= 0) return buffer;
+    return recording->length();
+#else
+    return 0;
+#endif
+}
 
-    registerGCObj(buffer);
-
-    // Drive the StreamRecording's pull() loop directly (no DataSink connected),
-    // mirroring how SerialSink consumes it above, but copying into our buffer
-    // instead of writing decimal ASCII to the physical serial port.
+/**
+ * Rewind the recorded clip, ready to be read chunk by chunk
+ */
+//%
+void beginExtract() {
+#if MICROBIT_CODAL
+    checkEnv();
+    // playAsync() rewinds to the start of the clip. No DataSink is connected
+    // here, so nothing consumes the stream behind our back: the JS side drives
+    // it one chunk at a time through nextChunk().
     recording->playAsync();
-    int offset = 0;
-    while (offset < total) {
-        ManagedBuffer chunk = recording->pull();
-        if (chunk.length() == 0) break;
-        int remaining = total - offset;
-        int n = chunk.length() < remaining ? chunk.length() : remaining;
-        memcpy(buffer->data + offset, chunk.getBytes(), n);
-        offset += n;
-    }
+#else
+    target_panic(PANIC_VARIANT_NOT_SUPPORTED);
+#endif
+}
 
-    unregisterGCObj(buffer);
-    return buffer;
+/**
+ * Read the next chunk of the recorded clip. Returns an empty buffer at the end.
+ */
+//%
+Buffer nextChunk() {
+#if MICROBIT_CODAL
+    checkEnv();
+    // One StreamRecording chunk at a time (256 bytes), so we never allocate a
+    // copy of the whole clip: at 11kHz a clip can reach 51200 bytes, which is
+    // far too big for a single PXT allocation (panic 022).
+    ManagedBuffer chunk = recording->pull();
+    if (chunk.length() == 0) return mkBuffer(NULL, 0);
+    return mkBuffer(chunk.getBytes(), chunk.length());
 #else
     target_panic(PANIC_VARIANT_NOT_SUPPORTED);
     return mkBuffer(NULL, 0);
