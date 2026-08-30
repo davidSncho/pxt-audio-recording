@@ -327,9 +327,20 @@ int clipLength() {
 void beginExtract() {
 #if MICROBIT_CODAL
     checkEnv();
-    // playAsync() rewinds to the start of the clip. No DataSink is connected
-    // here, so nothing consumes the stream behind our back: the JS side drives
-    // it one chunk at a time through nextChunk().
+
+    if (!recording->isStopped())
+        recording->stop();
+
+    // checkEnv() leaves serialSink permanently connected downstream (its
+    // constructor calls source.connect()). playAsync() calls
+    // downStream->pullRequest(), so without disconnecting first, serialSink
+    // drains the whole clip to the serial port before the JS side gets to
+    // call nextChunk(), which then only ever sees an empty stream.
+    recording->disconnect();
+
+    // Rewinds to the start of the clip. With no downstream connected, nothing
+    // consumes the stream behind our back: the JS side drives it one chunk at
+    // a time through nextChunk().
     recording->playAsync();
 #else
     target_panic(PANIC_VARIANT_NOT_SUPPORTED);
